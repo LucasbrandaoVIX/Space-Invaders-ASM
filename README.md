@@ -10,7 +10,10 @@ This project is an implementation of the classic Space Invaders game in x86 Asse
 ## How to Run
 1. Compile the `.asm` files to generate the `SPACE.EXE` executable.
 2. Run `SPACE.EXE` in a DOS environment (DOSBox recommended).
-3. Use the arrow keys to navigate the menu and press Enter to start the game.
+    
+    `tasm /zi Space.asm`
+    `tlink /v Space.obj`
+    `Space.exe`
 
 ## File Structure
 - `Space.asm`: Main file, initializes the game and calls modules.
