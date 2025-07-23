@@ -33,6 +33,10 @@ DATASEG
 	MediumString			db	'MEDIUM', '$'
 	HardString				db	'HARD', '$'
 	UseArrowKeysString		db	'Use arrow keys to select, Enter to start', '$'
+	
+	; Pause menu strings
+	PausedString			db	'PAUSED', '$'
+	PressPhideString		db	'Press P to resume', '$'
 
 ;Debug strings:
 	OpenErrorMsg			db	'File Open Error', 10,'$'

@@ -3,6 +3,9 @@ include "Strings.asm"
 
 	DebugBool						db	0
 
+	; Game state
+	GamePausedBool					db	0		; 0=Game running, 1=Game paused
+
 	; Difficulty settings
 	DifficultyLevel					db	1		; 0=Easy, 1=Medium, 2=Hard
 	SelectedMenuItem				db	1		; Current menu selection (0-2)
@@ -234,6 +237,87 @@ proc UpdateStats
 endp UpdateStats
 
 
+; --------------------------------------
+; Shows the pause menu overlay
+; --------------------------------------
+proc ShowPauseMenu
+	; Print semi-transparent overlay
+	push 180
+	push 60
+	push 50
+	push 70
+	push 8  ; Dark gray color
+	call PrintColor
+
+	; Print "PAUSED" text
+	mov ah, 2
+	xor bh, bh
+	mov dh, 8
+	mov dl, 17
+	int 10h
+
+	mov ah, 9
+	mov dx, offset PausedString
+	int 21h
+
+	; Print "Press P to resume" text
+	mov ah, 2
+	xor bh, bh
+	mov dh, 10
+	mov dl, 12
+	int 10h
+
+	mov ah, 9
+	mov dx, offset PressPhideString
+	int 21h
+
+	ret
+endp ShowPauseMenu
+
+
+; --------------------------------------
+; Hides the pause menu and redraws game
+; --------------------------------------
+proc HidePauseMenu
+	; Clear the pause menu area
+	push 180
+	push 60
+	push 50
+	push 70
+	push BlackColor
+	call PrintColor
+
+	; Redraw invaders
+	call PrintInvaders
+
+	; Redraw shooter
+	push [ShooterFileHandle]
+	push ShooterLength
+	push ShooterHeight
+	push ShooterLineLocation
+	push [word ptr ShooterRowLocation]
+	push offset FileReadBuffer
+	call PrintBMP
+
+	; Redraw player shot if exists
+	cmp [byte ptr PlayerShootingExists], 0
+	je @@skipPlayerShot
+
+	push ShootingLength
+	push ShootingHeight
+	push [word ptr PlayerShootingLineLocation]
+	push [word ptr PlayerShootingRowLocation]
+	push RedColor
+	call PrintColor
+
+@@skipPlayerShot:
+	; Redraw invader shots
+	call PrintInvadersShots
+
+	ret
+endp HidePauseMenu
+
+
 ; ------------------------------------------------------------
 ; Moving invaders + player to initial location, removing shots
 ; Not getting back dead invaders
@@ -361,7 +445,7 @@ proc InitializeGame
 	mov [byte ptr Score], 0
 	mov [byte ptr LivesRemaining], 3
 	mov [byte ptr Level], 1
-
+	mov [byte ptr GamePausedBool], 0  ; Ensure game starts unpaused
 
 	call InitializeLevel
 
@@ -562,7 +646,7 @@ proc PlayGame
 	mov ah, 1
 	int 16h
 
-	jz @@checkShotStatus
+	jz @@checkIfPaused
 
 	;Clean buffer:
  	push ax
@@ -574,6 +658,13 @@ proc PlayGame
 	;Check which key was pressed:
 	cmp ah, 1 ;Esc
 	je @@procEnd
+
+	cmp ah, 19h ;P for pause (scancode for P)
+	je @@pausePressed
+
+	; Check if game is paused - if so, ignore other keys except P
+	cmp [byte ptr GamePausedBool], 1
+	je @@readKey
 
 	cmp ah, 11h ;W
 	je @@shootPressed
@@ -620,6 +711,28 @@ proc PlayGame
 	push [word ptr ShooterRowLocation]
 	push offset FileReadBuffer
 	call PrintBMP
+	jmp @@checkIfPaused
+
+@@pausePressed:
+	; Toggle pause state
+	cmp [byte ptr GamePausedBool], 0
+	je @@pauseGame
+
+	; Unpause game
+	mov [byte ptr GamePausedBool], 0
+	call HidePauseMenu
+	jmp @@readKey
+
+@@pauseGame:
+	; Pause game
+	mov [byte ptr GamePausedBool], 1
+	call ShowPauseMenu
+	jmp @@readKey
+
+@@checkIfPaused:
+	; If game is paused, skip game logic
+	cmp [byte ptr GamePausedBool], 1
+	je @@readKey
 
 @@checkShotStatus:
 	;Check if shooting already exists in screen:
