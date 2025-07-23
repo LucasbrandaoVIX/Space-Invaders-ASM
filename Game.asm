@@ -244,30 +244,30 @@ endp HidePauseMenu
 ; Shows the exit confirmation menu overlay
 ; --------------------------------------
 proc ShowExitConfirmMenu
-	; Print semi-transparent overlay
-	push 200
+	; Print semi-transparent overlay (centralizado)
+	push 240
 	push 80
+	push 50
 	push 40
-	push 60
 	push 8  ; Dark gray color
 	call PrintColor
 
-	; Print "EXIT GAME?" text
+	; Print "EXIT GAME?" text (centralizado)
 	mov ah, 2
 	xor bh, bh
-	mov dh, 7
-	mov dl, 16
+	mov dh, 8
+	mov dl, 17
 	int 10h
 
 	mov ah, 9
 	mov dx, offset ExitConfirmString
 	int 21h
 
-	; Print "Press Y for Yes, N for No" text
+	; Print "Press Y for Yes, N for No" text (centralizado)
 	mov ah, 2
 	xor bh, bh
-	mov dh, 9
-	mov dl, 9
+	mov dh, 10
+	mov dl, 7
 	int 10h
 
 	mov ah, 9
@@ -282,11 +282,11 @@ endp ShowExitConfirmMenu
 ; Hides the exit confirmation menu and redraws game
 ; --------------------------------------
 proc HideExitConfirmMenu
-	; Clear the exit confirmation menu area
-	push 200
+	; Clear the exit confirmation menu area (mesmas dimensões do overlay)
+	push 240
 	push 80
+	push 50
 	push 40
-	push 60
 	push BlackColor
 	call PrintColor
 
