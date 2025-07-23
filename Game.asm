@@ -74,11 +74,7 @@ include "Strings.asm"
 	InvadersShootingLineLocations	dw	10 dup (?)
 	InvadersShootingRowLocations	dw	10 dup (?)
 
-	Score							db	?
 	LivesRemaining					db	?
-	Level							db	?
-
-	DidNotDieInLevelBool			db	?
 
 
 	HeartsPrintStartLine			equ	182
@@ -100,7 +96,7 @@ include "Invader.asm"
 include "Procs.asm"
 
 ; -----------------------------------------------------------
-; Prints the lower game area with score, lives, level, etc...
+; Prints the lower game area with lives
 ; -----------------------------------------------------------
 proc PrintStatsArea
 	; Print border:
@@ -110,31 +106,6 @@ proc PrintStatsArea
 	push 0
 	push 100
 	call PrintColor
-
-	;Print labels:
-
-	;Level label:
-	xor bh, bh
-	mov dh, 23
-	mov dl, 1
-	mov ah, 2
-	int 10h
-
-	mov ah, 9
-	mov dx, offset LevelString
-	int 21h
-
-
-	;Score label:
-	xor bh, bh
-	mov dh, 23
-	mov dl, 29
-	mov ah, 2
-	int 10h
-
-	mov ah, 9
-	mov dx, offset ScoreString
-	int 21h
 
 	ret
 endp PrintStatsArea
@@ -186,53 +157,10 @@ proc UpdateLives
 endp UpdateLives
 
 
-;----------------------------------
-; Updates the score shown on screen
-;----------------------------------
-proc UpdateScoreStat
-	xor bh, bh
-	mov dh, 23
-	mov dl, 36
-	mov ah, 2
-	int 10h
-
-	xor ah, ah
-	mov al, [Score]
-	push ax
-	call HexToDecimal
-
-	push ax
-	mov ah, 2
-	int 21h
-	pop dx
-	xchg dl, dh
-	int 21h
-	xchg dl, dh
-	int 21h
-
-	ret
-endp UpdateScoreStat
-
-
 ; ---------------------------------------
-; Updates the level # and the score count
+; Updates the game stats
 ; ---------------------------------------
 proc UpdateStats
-	;Update level:
-	xor bh, bh
-	mov dh, 23
-	mov dl, 8
-	mov ah, 2
-	int 10h
-
-	mov ah, 2
-	mov dl, [byte ptr Level]
-	add dl, 30h
-	int 21h
-
-	;Update score:
-	call UpdateScoreStat
-
 	ret
 endp UpdateStats
 
@@ -356,29 +284,11 @@ proc MoveToStart
 endp MoveToStart
 
 ; ------------------------------------------------------------
-; Resetting invaders locations, shootings, etc for a new level
+; Resetting invaders locations, shootings, etc for the game
 ; ------------------------------------------------------------
-proc InitializeLevel
+proc InitializeInvaders
     mov [InvadersLeftAmount], 24
-
-    cmp [byte ptr Level], 1
-    jne @@checkLevelTwo
-
-    mov [byte ptr InvadersShootingMaxAmount], 3
-    jmp @@resetDidNotDieBool
-
-@@checkLevelTwo:
-    cmp [byte ptr Level], 2
-    jne @@setLevelThree
-
     mov [byte ptr InvadersShootingMaxAmount], 5
-    jmp @@resetDidNotDieBool
-
-@@setLevelThree:
-    mov [byte ptr InvadersShootingMaxAmount], 7
-
-@@resetDidNotDieBool:
-    mov [byte ptr DidNotDieInLevelBool], 1 ;true
 
     call MoveToStart
 
@@ -433,20 +343,17 @@ proc InitializeLevel
     rep stosb
 
     ret
-endp InitializeLevel
+endp InitializeInvaders
 
 
 ; -----------------------------------------------
-; Resetting every stat to its initial game value,
-; and setting the first level
+; Resetting every stat to its initial game value
 ; -----------------------------------------------
 proc InitializeGame
-	mov [byte ptr Score], 0
 	mov [byte ptr LivesRemaining], 3
-	mov [byte ptr Level], 1
 	mov [byte ptr GamePausedBool], 0  ; Ensure game starts unpaused
 
-	call InitializeLevel
+	call InitializeInvaders
 
 	ret
 endp InitializeGame
@@ -584,7 +491,7 @@ proc PlayGame
 	call ClearScreen
 
 
-@@firstLevelPrint:
+@@gameStart:
 	call PrintStatsArea
 	call UpdateStats
 	call UpdateLives
@@ -837,10 +744,10 @@ proc PlayGame
 	mov ah, 2
 	xor bh, bh
 	mov dh, 12
-	mov dl, 8
+	mov dl, 10
 	int 10h
 
-	;tell user he was hit, -5 score...
+	;tell user he was hit...
 	mov ah, 9
 	mov dx, offset HitString
 	int 21h
@@ -874,22 +781,8 @@ proc PlayGame
 	pop cx
 	loop @@blinkShooter
 
-	;sub 5 score if possible, if he doesn't have 5 yet, just reset to 0:
-	cmp [byte ptr Score], 5
-	jb @@resetScoreAfterDeath
-
-	sub [byte ptr Score], 5
-	jmp @@resetBeforeContinueAfterDeath
-
-
-@@resetScoreAfterDeath:
-	mov [byte ptr Score], 0
-
 @@resetBeforeContinueAfterDeath:
 	call MoveToStart
-
-	mov [byte ptr DidNotDieInLevelBool], 0 ;false
-
 
 	push 24
 	call Delay
@@ -897,7 +790,7 @@ proc PlayGame
 	call ClearScreen
 
 	
-	jmp @@firstLevelPrint
+	jmp @@gameStart
 
 
 	jmp @@readKey
@@ -908,24 +801,45 @@ proc PlayGame
 	mov ah, 2
 	xor bh, bh
 	mov dh, 12
-	mov dl, 15
+	mov dl, 17
 	int 10h
 
 	mov ah, 9
 	mov dx, offset GameOverString
 	int 21h
 
+	push 54
+	call Delay
+
+	jmp @@procEnd
+
+
+@@setNewLevel:
+	; Game completed - all invaders destroyed!
+	call ClearScreen
+	
+	; Print win message to user:
+	mov ah, 2
+	xor bh, bh
+	mov dh, 12
+	mov dl, 18
+	int 10h
+
+	mov ah, 9
+	mov dx, offset WinString
+	int 21h
+
 	;print actual score #:
 	mov ah, 2
 	xor bh, bh
-	mov dh, 13
-	mov dl, 10
+	mov dh, 14
+	mov dl, 12
 	int 10h
 
 	mov ah, 9
 	mov dx, offset YouEarnedXString
 	int 21h
-	
+
 	xor ah, ah
 	mov al, [Score]
 	push ax
@@ -948,77 +862,6 @@ proc PlayGame
 	call Delay
 
 	jmp @@procEnd
-
-
-@@setNewLevel:
-	cmp [byte ptr DidNotDieInLevelBool], 1
-	jne @@SkipPerfectLevelBonus
-
-	add [byte ptr Score], 5 ;special bonus for perfect level (no death in level)
-
-	;print bonus message:
-	mov ah, 2
-	xor bh, bh
-	mov dh, 12
-	mov dl, 8
-	int 10h
-
-	mov ah, 9
-	mov dx, offset PerfectLevelString
-	int 21h
-
-	push 24
-	call Delay
-
-	call ClearScreen
-
-
-@@SkipPerfectLevelBonus:
-
-	cmp [byte ptr Level], 3
-	je @@printWin
-
-
-	inc [byte ptr Level]
-	call InitializeLevel
-
-	call ClearScreen
-	jmp @@firstLevelPrint
-
-@@printWin:
-; Print win message to user (finished 3 levels):
-	mov ah, 9
-	mov dx, offset WinString
-	int 21h
-
-	;print actual score #:
-	mov ah, 2
-	xor bh, bh
-	mov dh, 13
-	mov dl, 15
-	int 10h
-
-	mov ah, 9
-	mov dx, offset YouEarnedXString
-	int 21h
-
-	xor ah, ah
-	mov al, [Score]
-	push ax
-	call HexToDecimal
-
-	push ax
-	mov ah, 2
-	int 21h
-	pop dx
-	xchg dl, dh
-	int 21h
-	xchg dl, dh
-	int 21h
-
-	mov ah, 9
-	mov dx, offset ScoreWordString
-	int 21h
 
 
 @@procEnd:
