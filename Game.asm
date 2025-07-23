@@ -700,6 +700,10 @@ proc PlayGame
 	jmp @@checkIfPaused
 
 @@pausePressed:
+	; Check if exit confirmation menu is already open - if so, ignore pause
+	cmp [byte ptr ExitConfirmBool], 1
+	je @@readKey
+
 	; Toggle pause state
 	cmp [byte ptr GamePausedBool], 0
 	je @@pauseGame
@@ -716,6 +720,10 @@ proc PlayGame
 	jmp @@readKey
 
 @@quitPressed:
+	; Check if game is paused - if so, ignore quit
+	cmp [byte ptr GamePausedBool], 1
+	je @@readKey
+
 	; Show exit confirmation menu
 	mov [byte ptr ExitConfirmBool], 1
 	call ShowExitConfirmMenu
