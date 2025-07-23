@@ -251,24 +251,24 @@ proc PrintDifficultyMenu
 	mov al, 03h  ; 80x25 color text mode
 	int 10h
 
-	; Print title
+	; Print title (centered: "SPACE INVADERS" = 14 chars, (80-14)/2 = 33)
 	push 5
-	push 15
+	push 33
 	push offset DifficultyTitleString
 	call PrintStringAt
 
-	; Print subtitle
+	; Print subtitle (centered: "Select Difficulty:" = 18 chars, (80-18)/2 = 31)
 	push 8
-	push 12
+	push 31
 	push offset SelectDifficultyString
 	call PrintStringAt
 
 	; Print options with highlighting
 	call UpdateDifficultyMenuDisplay
 
-	; Print instructions
+	; Print instructions (centered: 41 chars, (80-41)/2 = 19)
 	push 18
-	push 5
+	push 19
 	push offset UseArrowKeysString
 	call PrintStringAt
 
@@ -306,15 +306,15 @@ proc UpdateDifficultyMenuDisplay
 	inc dh
 	loop @@clearLoop
 
-	; Now print options
+	; Now print options (centered around column 40)
 	; Easy option
 	mov al, [SelectedMenuItem]
 	cmp al, 0
 	jne @@printEasyNormal
 	
-	; Print highlighted Easy
+	; Print highlighted Easy ("> EASY <" = 8 chars, center at column 36)
 	mov dh, 12
-	mov dl, 16
+	mov dl, 36
 	mov ah, 02h
 	mov bh, 0
 	int 10h
@@ -345,8 +345,9 @@ proc UpdateDifficultyMenuDisplay
 	jmp @@printMedium
 
 @@printEasyNormal:
+	; "EASY" = 4 chars, center at column 38
 	push 12
-	push 18
+	push 38
 	push offset EasyString
 	call PrintStringAt
 
@@ -356,9 +357,9 @@ proc UpdateDifficultyMenuDisplay
 	cmp al, 1
 	jne @@printMediumNormal
 	
-	; Print highlighted Medium
+	; Print highlighted Medium ("> MEDIUM <" = 10 chars, center at column 35)
 	mov dh, 13
-	mov dl, 15
+	mov dl, 35
 	mov ah, 02h
 	mov bh, 0
 	int 10h
@@ -389,8 +390,9 @@ proc UpdateDifficultyMenuDisplay
 	jmp @@printHard
 
 @@printMediumNormal:
+	; "MEDIUM" = 6 chars, center at column 37
 	push 13
-	push 17
+	push 37
 	push offset MediumString
 	call PrintStringAt
 
@@ -400,9 +402,9 @@ proc UpdateDifficultyMenuDisplay
 	cmp al, 2
 	jne @@printHardNormal
 	
-	; Print highlighted Hard
+	; Print highlighted Hard ("> HARD <" = 8 chars, center at column 36)
 	mov dh, 14
-	mov dl, 16
+	mov dl, 36
 	mov ah, 02h
 	mov bh, 0
 	int 10h
@@ -433,8 +435,9 @@ proc UpdateDifficultyMenuDisplay
 	jmp @@endProc
 
 @@printHardNormal:
+	; "HARD" = 4 chars, center at column 38
 	push 14
-	push 18
+	push 38
 	push offset HardString
 	call PrintStringAt
 
