@@ -1,5 +1,4 @@
 CODESEG
-include "Macros.asm"
 
 ; ---------------------------------------------------------------------------------------
 ; Filling the entire screen (graphic mode 320x200) with black (standard palette, index 0)
@@ -163,43 +162,6 @@ proc CheckDebug
 	ret
 endp CheckDebug
 
-
-; ---------------------------------------------------------
-; Get a number from stack, return 4 decimal digits to dx:ax
-; thousands in dh, hundreds in dl, tens in ah, units in al
-; ---------------------------------------------------------
-proc HexToDecimal
-	push bp
-	mov bp, sp
-
-	mov ax, [bp + 4]
-
-	mov cx, 4
-@@findDigit:
-	mov bl, 10
-	div bl
-	mov dx, ax
-	shr dx, 8
-	push dx
-	xor ah, ah
-	loop @@findDigit
-
-	pop cx
-	mov dh, cl
-	pop cx
-	mov dl, cl
-	pop cx
-	mov ah, cl
-	pop cx
-	mov al, cl
-
-	;Convert to ASCII chars
-	add dx, 3030h
-	add ax, 3030h
-
-	pop bp
-	ret 2
-endp HexToDecimal
 
 ; -----------------------------------------------
 ; Print a string at specific screen coordinates with color

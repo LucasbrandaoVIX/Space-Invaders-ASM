@@ -5,10 +5,10 @@ P386
 
 CODESEG
 
-include "FileUse.asm"
-include "Game.asm"
-include "Print.asm"
-include "Menus.asm"
+include "fileio.asm"
+include "game.asm"
+include "graphics.asm"
+include "ui.asm"
 
 
 start:

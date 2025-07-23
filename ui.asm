@@ -90,35 +90,3 @@ proc PrintMainMenu
 	ret
 endp PrintMainMenu
 
-
-; ------------------------------------------------------------
-; Prints the instructions menu, quitting when a key is pressed
-; ------------------------------------------------------------
-proc PrintInstructions
-	push offset InstructionsFileName
-	push offset InstructionsFileHandle
-	call OpenFile
-
-	cmp ax, 0 ;check if there's an error opening file
-	jne @@printImage
-
-	push 18 ;wait 1 second
-	call Delay
-
-	ret
-
-@@printImage:
-	push [InstructionsFileHandle]
-	push offset FileReadBuffer
-	call PrintFullScreenBMP
-
-	push [InstructionsFileHandle]
-	call CloseFile
-
-	;wait for key:
-	xor ah, ah
-	int 16h
-
-	ret
-endp PrintInstructions
-

@@ -1,5 +1,5 @@
 DATASEG
-include "Strings.asm"
+include "strings.asm"
 
 	DebugBool						db	0
 
@@ -17,14 +17,8 @@ include "Strings.asm"
 	RandomFileName					db	'Assets/Random.txt', 0
 	RandomFileHandle				dw	?
 
-	AskSaveFileName					db	'Assets/AskSave.bmp', 0
-	AskSaveFileHandle				dw	?
-
 	MainMenuFileName				db	'Assets/MainMenu.bmp',0
 	MainMenuFileHandle				dw	?
-
-	InstructionsFileName			db	'Assets/Instruct.bmp',0
-	InstructionsFileHandle			dw	?
 
 	InvaderFileName					db	'Assets/Invader.bmp',0
 	InvaderFileHandle				dw	?
@@ -87,8 +81,8 @@ include "Strings.asm"
 	WhiteColor						equ	255
 
 CODESEG
-include "Invader.asm"
-include "Procs.asm"
+include "entities.asm"
+include "utils.asm"
 
 ; -----------------------------------------------------------
 ; Prints the lower game area with lives
@@ -150,14 +144,6 @@ proc UpdateLives
 
 	ret
 endp UpdateLives
-
-
-; ---------------------------------------
-; Updates the game stats
-; ---------------------------------------
-proc UpdateStats
-	ret
-endp UpdateStats
 
 
 ; --------------------------------------
@@ -566,7 +552,6 @@ proc PlayGame
 
 @@gameStart:
 	call PrintStatsArea
-	call UpdateStats
 	call UpdateLives
 
 	call CheckAndMoveInvaders
