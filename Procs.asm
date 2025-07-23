@@ -473,10 +473,3 @@ proc SetDifficultyParameters
 	ret
 endp SetDifficultyParameters
 
-; ------------------------------------------------------------------------------------------------------------
-; Sorting the txt file holding scores by the score of each player
-; Higher score = higher rank
-; If 2 scores are equal, the one who was in a higher rank would stay there, the second would be one rank under
-; Max of 5 players in file
-; ------------------------------------------------------------------------------------------------------------
-; Removido: proc SortScoresFile

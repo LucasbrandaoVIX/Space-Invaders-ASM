@@ -1,7 +1,3 @@
-TableNameColumn			equ	13
-	TableScoreColumn		equ	24
-	TableTitlesLine			equ	5
-	
 CODESEG
 ; ----------------------------------------
 ; Print the difficulty selection menu, handle user choices

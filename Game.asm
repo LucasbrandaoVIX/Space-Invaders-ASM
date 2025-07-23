@@ -16,12 +16,6 @@ include "Strings.asm"
 	RandomFileName					db	'Assets/Random.txt', 0
 	RandomFileHandle				dw	?
 
-	ScoresFileName					db	'Assets/Scores.txt', 0
-	ScoresFileHandle				dw	?
-
-	ScoreTableFileName				db	'Assets/ScoreTab.bmp', 0
-	ScoreTableFileHandle			dw	?
-
 	AskSaveFileName					db	'Assets/AskSave.bmp', 0
 	AskSaveFileHandle				dw	?
 
