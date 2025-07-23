@@ -32,6 +32,10 @@ DATASEG
 	; Pause menu strings
 	PausedString			db	'PAUSED', '$'
 	PressPhideString		db	'Press P to resume', '$'
+	
+	; Exit confirmation menu strings
+	ExitConfirmString		db	'EXIT GAME?', '$'
+	PressYesNoString		db	'Press Y for Yes, N for No', '$'
 
 ;Debug strings:
 	OpenErrorMsg			db	'File Open Error', 10,'$'

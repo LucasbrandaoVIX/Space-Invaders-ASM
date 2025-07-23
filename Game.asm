@@ -5,6 +5,7 @@ include "Strings.asm"
 
 	; Game state
 	GamePausedBool					db	0		; 0=Game running, 1=Game paused
+	ExitConfirmBool					db	0		; 0=Normal play, 1=Showing exit confirmation
 
 	; Difficulty settings
 	DifficultyLevel					db	1		; 0=Easy, 1=Medium, 2=Hard
@@ -239,6 +240,83 @@ proc HidePauseMenu
 endp HidePauseMenu
 
 
+; --------------------------------------
+; Shows the exit confirmation menu overlay
+; --------------------------------------
+proc ShowExitConfirmMenu
+	; Print semi-transparent overlay
+	push 200
+	push 80
+	push 40
+	push 60
+	push 8  ; Dark gray color
+	call PrintColor
+
+	; Print "EXIT GAME?" text
+	mov ah, 2
+	xor bh, bh
+	mov dh, 7
+	mov dl, 16
+	int 10h
+
+	mov ah, 9
+	mov dx, offset ExitConfirmString
+	int 21h
+
+	; Print "Press Y for Yes, N for No" text
+	mov ah, 2
+	xor bh, bh
+	mov dh, 9
+	mov dl, 9
+	int 10h
+
+	mov ah, 9
+	mov dx, offset PressYesNoString
+	int 21h
+
+	ret
+endp ShowExitConfirmMenu
+
+
+; --------------------------------------
+; Hides the exit confirmation menu and redraws game
+; --------------------------------------
+proc HideExitConfirmMenu
+	; Clear the exit confirmation menu area
+	push 200
+	push 80
+	push 40
+	push 60
+	push BlackColor
+	call PrintColor
+
+	; Clear the entire game area to remove any menu artifacts
+	push 320
+	push 165  ; From top to stats area
+	push 0    ; Start line
+	push 0    ; Start row
+	push BlackColor
+	call PrintColor
+
+	; Redraw invaders
+	call PrintInvaders
+
+	; Redraw shooter
+	push [ShooterFileHandle]
+	push ShooterLength
+	push ShooterHeight
+	push ShooterLineLocation
+	push [word ptr ShooterRowLocation]
+	push offset FileReadBuffer
+	call PrintBMP
+
+	; Redraw invader shots
+	call PrintInvadersShots
+
+	ret
+endp HideExitConfirmMenu
+
+
 ; ------------------------------------------------------------
 ; Moving invaders + player to initial location, removing shots
 ; Not getting back dead invaders
@@ -346,6 +424,7 @@ endp InitializeInvaders
 proc InitializeGame
 	mov [byte ptr LivesRemaining], 3
 	mov [byte ptr GamePausedBool], 0  ; Ensure game starts unpaused
+	mov [byte ptr ExitConfirmBool], 0  ; Ensure exit confirmation is off
 
 	call InitializeInvaders
 
@@ -559,8 +638,15 @@ proc PlayGame
 	cmp ah, 1 ;Esc
 	je @@procEnd
 
+	cmp ah, 10h ;Q for quit with confirmation
+	je @@quitPressed
+
 	cmp ah, 19h ;P for pause (scancode for P)
 	je @@pausePressed
+
+	; Check if exit confirmation is showing - handle Y/N keys
+	cmp [byte ptr ExitConfirmBool], 1
+	je @@handleExitConfirm
 
 	; Check if game is paused - if so, ignore other keys except P
 	cmp [byte ptr GamePausedBool], 1
@@ -629,7 +715,38 @@ proc PlayGame
 	call ShowPauseMenu
 	jmp @@readKey
 
+@@quitPressed:
+	; Show exit confirmation menu
+	mov [byte ptr ExitConfirmBool], 1
+	call ShowExitConfirmMenu
+	jmp @@readKey
+
+@@handleExitConfirm:
+	; Handle Y/N keys for exit confirmation
+	cmp ah, 15h ;Y for yes (scancode for Y)
+	je @@confirmExit
+
+	cmp ah, 31h ;N for no (scancode for N)
+	je @@cancelExit
+
+	; If other key pressed, ignore and continue reading
+	jmp @@readKey
+
+@@confirmExit:
+	; User confirmed exit
+	jmp @@procEnd
+
+@@cancelExit:
+	; User cancelled exit, hide menu and continue
+	mov [byte ptr ExitConfirmBool], 0
+	call HideExitConfirmMenu
+	jmp @@readKey
+
 @@checkIfPaused:
+	; If exit confirmation is showing, skip game logic
+	cmp [byte ptr ExitConfirmBool], 1
+	je @@readKey
+
 	; If game is paused, skip game logic
 	cmp [byte ptr GamePausedBool], 1
 	je @@readKey
