@@ -23,6 +23,12 @@ DATASEG
 	HardString				db	'HARD', '$'
 	UseArrowKeysString		db	'Use arrow keys to select, Enter to start', '$'
 	
+	; Menu decoration strings
+	MenuStars1				db	'*~*~*~*~*~*~*~*~*~*', '$'
+	MenuStars2				db	'*~*~*~*~*~*~*~*~*~*', '$'
+	MenuSpacing				db	'                    ', '$'
+	MenuBottomDecor			db	'~~~~~~ Press ESC to exit ~~~~~~', '$'
+	
 	; Pause menu strings
 	PausedString			db	'PAUSED', '$'
 	PressPhideString		db	'Press P to resume', '$'

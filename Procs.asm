@@ -202,6 +202,52 @@ proc HexToDecimal
 endp HexToDecimal
 
 ; -----------------------------------------------
+; Print a string at specific screen coordinates with color
+; Parameters on stack: line, column, string offset, color
+; -----------------------------------------------
+proc PrintStringAtWithColor
+	push bp
+	mov bp, sp
+	push ax bx cx dx si
+
+	; Get parameters from stack
+	mov dh, [bp + 10] ; line
+	mov dl, [bp + 8]  ; column
+	mov si, [bp + 6]  ; string offset
+	mov bl, [bp + 4]  ; color attribute
+
+	; Set cursor position
+	mov ah, 02h
+	mov bh, 0
+	int 10h
+
+	; Print string character by character with color
+@@printLoop:
+	mov al, [si]
+	cmp al, '$'
+	je @@endPrint
+	
+	; Print character with color
+	mov ah, 09h
+	mov bh, 0
+	mov cx, 1
+	int 10h
+	
+	; Move cursor forward
+	mov ah, 02h
+	inc dl
+	int 10h
+	
+	inc si
+	jmp @@printLoop
+
+@@endPrint:
+	pop si dx cx bx ax
+	pop bp
+	ret 8
+endp PrintStringAtWithColor
+
+; -----------------------------------------------
 ; Print a string at specific screen coordinates
 ; Parameters on stack: line, column, string offset
 ; -----------------------------------------------
@@ -241,6 +287,96 @@ proc PrintStringAt
 endp PrintStringAt
 
 ; -----------------------------------------------
+; Draw a decorative border around the menu
+; -----------------------------------------------
+proc DrawMenuBorder
+	push ax bx cx dx si
+
+	; Draw top border (cyan color)
+	mov dh, 2
+	mov dl, 15
+	mov ah, 02h
+	mov bh, 0
+	int 10h
+	
+	mov cx, 50
+	mov al, '='
+	mov bl, 0Bh  ; Light cyan
+@@topBorder:
+	mov ah, 09h
+	mov bh, 0
+	push cx
+	mov cx, 1
+	int 10h
+	pop cx
+	
+	; Move cursor
+	mov ah, 02h
+	inc dl
+	int 10h
+	loop @@topBorder
+
+	; Draw side borders (yellow color)
+	mov cx, 19  ; Height of menu area
+	mov dh, 3   ; Starting row
+@@sideBorders:
+	push cx
+	
+	; Left border
+	mov dl, 15
+	mov ah, 02h
+	mov bh, 0
+	int 10h
+	mov al, '|'
+	mov ah, 09h
+	mov bl, 0Eh  ; Yellow
+	mov cx, 1
+	int 10h
+	
+	; Right border
+	mov dl, 64
+	mov ah, 02h
+	mov bh, 0
+	int 10h
+	mov al, '|'
+	mov ah, 09h
+	mov bl, 0Eh  ; Yellow
+	mov cx, 1
+	int 10h
+	
+	inc dh
+	pop cx
+	loop @@sideBorders
+
+	; Draw bottom border (cyan color)
+	mov dh, 22
+	mov dl, 15
+	mov ah, 02h
+	mov bh, 0
+	int 10h
+	
+	mov cx, 50
+	mov al, '='
+	mov bl, 0Bh  ; Light cyan
+@@bottomBorder:
+	mov ah, 09h
+	mov bh, 0
+	push cx
+	mov cx, 1
+	int 10h
+	pop cx
+	
+	; Move cursor
+	mov ah, 02h
+	inc dl
+	int 10h
+	loop @@bottomBorder
+
+	pop si dx cx bx ax
+	ret
+endp DrawMenuBorder
+
+; -----------------------------------------------
 ; Print the difficulty selection menu
 ; -----------------------------------------------
 proc PrintDifficultyMenu
@@ -251,26 +387,51 @@ proc PrintDifficultyMenu
 	mov al, 03h  ; 80x25 color text mode
 	int 10h
 
-	; Print title (centered: "SPACE INVADERS" = 14 chars, (80-14)/2 = 33)
+	; Draw decorative border
+	call DrawMenuBorder
+
+	; Print title with decorative elements (bright white on blue background)
+	push 4
+	push 30
+	push offset MenuStars1
+	push 0Dh  ; Light magenta
+	call PrintStringAtWithColor
+	
 	push 5
 	push 33
 	push offset DifficultyTitleString
-	call PrintStringAt
+	push 0Fh  ; Bright white
+	call PrintStringAtWithColor
+	
+	push 6
+	push 30
+	push offset MenuStars2
+	push 0Dh  ; Light magenta
+	call PrintStringAtWithColor
 
-	; Print subtitle (centered: "Select Difficulty:" = 18 chars, (80-18)/2 = 31)
-	push 8
+	; Print subtitle (light green)
+	push 9
 	push 31
 	push offset SelectDifficultyString
-	call PrintStringAt
+	push 0Ah  ; Light green
+	call PrintStringAtWithColor
 
 	; Print options with highlighting
 	call UpdateDifficultyMenuDisplay
 
-	; Print instructions (centered: 41 chars, (80-41)/2 = 19)
-	push 18
+	; Print instructions (gray color)
+	push 19
 	push 19
 	push offset UseArrowKeysString
-	call PrintStringAt
+	push 07h  ; Light gray
+	call PrintStringAtWithColor
+
+	; Draw bottom decoration (cyan)
+	push 21
+	push 25
+	push offset MenuBottomDecor
+	push 0Bh  ; Light cyan
+	call PrintStringAtWithColor
 
 	pop dx cx bx ax
 	ret
@@ -282,19 +443,19 @@ endp PrintDifficultyMenu
 proc UpdateDifficultyMenuDisplay
 	push ax bx cx dx si
 
-	; Clear the options area first
+	; Clear the options area first (wider area for better spacing)
 	mov cx, 3  ; Clear 3 lines
 	mov dh, 12 ; Start at line 12
 @@clearLoop:
 	push cx
 	push dx
 	
-	mov dl, 0  ; Column 0
+	mov dl, 18  ; Start clearing from column 18
 	mov ah, 02h
 	mov bh, 0
 	int 10h
 	
-	mov cx, 80  ; Clear 80 characters
+	mov cx, 44  ; Clear 44 characters (wider area)
 @@clearLineLoop:
 	mov al, ' '
 	mov ah, 0Eh
@@ -306,24 +467,39 @@ proc UpdateDifficultyMenuDisplay
 	inc dh
 	loop @@clearLoop
 
-	; Now print options (centered around column 40)
+	; Now print options (centered around column 40) with better styling
 	; Easy option
 	mov al, [SelectedMenuItem]
 	cmp al, 0
 	jne @@printEasyNormal
 	
-	; Print highlighted Easy ("> EASY <" = 8 chars, center at column 36)
+	; Print highlighted Easy with decorative brackets (bright yellow)
 	mov dh, 12
 	mov dl, 36
 	mov ah, 02h
 	mov bh, 0
 	int 10h
 	
-	mov al, '>'
-	mov ah, 0Eh
+	mov al, '<'
+	mov ah, 09h
+	mov bl, 0Eh  ; Yellow
+	mov cx, 1
 	int 10h
+	
+	; Move cursor
+	mov ah, 02h
+	inc dl
+	int 10h
+	
 	mov al, ' '
-	mov ah, 0Eh
+	mov ah, 09h
+	mov bl, 0Eh  ; Yellow
+	mov cx, 1
+	int 10h
+	
+	; Move cursor
+	mov ah, 02h
+	inc dl
 	int 10h
 	
 	mov si, offset EasyString
@@ -331,25 +507,49 @@ proc UpdateDifficultyMenuDisplay
 	mov al, [si]
 	cmp al, '$'
 	je @@endEasyHighlight
-	mov ah, 0Eh
+	mov ah, 09h
+	mov bl, 0Eh  ; Yellow
+	mov cx, 1
 	int 10h
+	
+	; Move cursor
+	mov ah, 02h
+	inc dl
+	int 10h
+	
 	inc si
 	jmp @@printEasyHighlight
 @@endEasyHighlight:
 	mov al, ' '
-	mov ah, 0Eh
+	mov ah, 09h
+	mov bl, 0Eh  ; Yellow
+	mov cx, 1
 	int 10h
-	mov al, '<'
-	mov ah, 0Eh
+	
+	; Move cursor
+	mov ah, 02h
+	inc dl
+	int 10h
+	
+	mov al, '>'
+	mov ah, 09h
+	mov bl, 0Eh  ; Yellow
+	mov cx, 1
 	int 10h
 	jmp @@printMedium
 
 @@printEasyNormal:
-	; "EASY" = 4 chars, center at column 38
+	; Print normal Easy with spacing (white)
+	push 12
+	push 20
+	push offset MenuSpacing
+	push 07h  ; Light gray
+	call PrintStringAtWithColor
 	push 12
 	push 38
 	push offset EasyString
-	call PrintStringAt
+	push 07h  ; Light gray
+	call PrintStringAtWithColor
 
 @@printMedium:
 	; Medium option
@@ -357,18 +557,33 @@ proc UpdateDifficultyMenuDisplay
 	cmp al, 1
 	jne @@printMediumNormal
 	
-	; Print highlighted Medium ("> MEDIUM <" = 10 chars, center at column 35)
+	; Print highlighted Medium with decorative brackets (bright yellow)
 	mov dh, 13
 	mov dl, 35
 	mov ah, 02h
 	mov bh, 0
 	int 10h
 	
-	mov al, '>'
-	mov ah, 0Eh
+	mov al, '<'
+	mov ah, 09h
+	mov bl, 0Eh  ; Yellow
+	mov cx, 1
 	int 10h
+	
+	; Move cursor
+	mov ah, 02h
+	inc dl
+	int 10h
+	
 	mov al, ' '
-	mov ah, 0Eh
+	mov ah, 09h
+	mov bl, 0Eh  ; Yellow
+	mov cx, 1
+	int 10h
+	
+	; Move cursor
+	mov ah, 02h
+	inc dl
 	int 10h
 	
 	mov si, offset MediumString
@@ -376,25 +591,49 @@ proc UpdateDifficultyMenuDisplay
 	mov al, [si]
 	cmp al, '$'
 	je @@endMediumHighlight
-	mov ah, 0Eh
+	mov ah, 09h
+	mov bl, 0Eh  ; Yellow
+	mov cx, 1
 	int 10h
+	
+	; Move cursor
+	mov ah, 02h
+	inc dl
+	int 10h
+	
 	inc si
 	jmp @@printMediumHighlight
 @@endMediumHighlight:
 	mov al, ' '
-	mov ah, 0Eh
+	mov ah, 09h
+	mov bl, 0Eh  ; Yellow
+	mov cx, 1
 	int 10h
-	mov al, '<'
-	mov ah, 0Eh
+	
+	; Move cursor
+	mov ah, 02h
+	inc dl
+	int 10h
+	
+	mov al, '>'
+	mov ah, 09h
+	mov bl, 0Eh  ; Yellow
+	mov cx, 1
 	int 10h
 	jmp @@printHard
 
 @@printMediumNormal:
-	; "MEDIUM" = 6 chars, center at column 37
+	; Print normal Medium with spacing (white)
+	push 13
+	push 20
+	push offset MenuSpacing
+	push 07h  ; Light gray
+	call PrintStringAtWithColor
 	push 13
 	push 37
 	push offset MediumString
-	call PrintStringAt
+	push 07h  ; Light gray
+	call PrintStringAtWithColor
 
 @@printHard:
 	; Hard option
@@ -402,18 +641,33 @@ proc UpdateDifficultyMenuDisplay
 	cmp al, 2
 	jne @@printHardNormal
 	
-	; Print highlighted Hard ("> HARD <" = 8 chars, center at column 36)
+	; Print highlighted Hard with decorative brackets (bright yellow)
 	mov dh, 14
 	mov dl, 36
 	mov ah, 02h
 	mov bh, 0
 	int 10h
 	
-	mov al, '>'
-	mov ah, 0Eh
+	mov al, '<'
+	mov ah, 09h
+	mov bl, 0Eh  ; Yellow
+	mov cx, 1
 	int 10h
+	
+	; Move cursor
+	mov ah, 02h
+	inc dl
+	int 10h
+	
 	mov al, ' '
-	mov ah, 0Eh
+	mov ah, 09h
+	mov bl, 0Eh  ; Yellow
+	mov cx, 1
+	int 10h
+	
+	; Move cursor
+	mov ah, 02h
+	inc dl
 	int 10h
 	
 	mov si, offset HardString
@@ -421,25 +675,49 @@ proc UpdateDifficultyMenuDisplay
 	mov al, [si]
 	cmp al, '$'
 	je @@endHardHighlight
-	mov ah, 0Eh
+	mov ah, 09h
+	mov bl, 0Eh  ; Yellow
+	mov cx, 1
 	int 10h
+	
+	; Move cursor
+	mov ah, 02h
+	inc dl
+	int 10h
+	
 	inc si
 	jmp @@printHardHighlight
 @@endHardHighlight:
 	mov al, ' '
-	mov ah, 0Eh
+	mov ah, 09h
+	mov bl, 0Eh  ; Yellow
+	mov cx, 1
 	int 10h
-	mov al, '<'
-	mov ah, 0Eh
+	
+	; Move cursor
+	mov ah, 02h
+	inc dl
+	int 10h
+	
+	mov al, '>'
+	mov ah, 09h
+	mov bl, 0Eh  ; Yellow
+	mov cx, 1
 	int 10h
 	jmp @@endProc
 
 @@printHardNormal:
-	; "HARD" = 4 chars, center at column 38
+	; Print normal Hard with spacing (white)
+	push 14
+	push 20
+	push offset MenuSpacing
+	push 07h  ; Light gray
+	call PrintStringAtWithColor
 	push 14
 	push 38
 	push offset HardString
-	call PrintStringAt
+	push 07h  ; Light gray
+	call PrintStringAtWithColor
 
 @@endProc:
 	pop si dx cx bx ax
