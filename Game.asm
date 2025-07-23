@@ -287,6 +287,14 @@ proc HidePauseMenu
 	push BlackColor
 	call PrintColor
 
+	; Clear the entire game area to remove any projectile "ghosts"
+	push 320
+	push 165  ; From top to stats area
+	push 0    ; Start line
+	push 0    ; Start row
+	push BlackColor
+	call PrintColor
+
 	; Redraw invaders
 	call PrintInvaders
 
@@ -299,18 +307,9 @@ proc HidePauseMenu
 	push offset FileReadBuffer
 	call PrintBMP
 
-	; Redraw player shot if exists
-	cmp [byte ptr PlayerShootingExists], 0
-	je @@skipPlayerShot
+	; Do NOT redraw player shot here - let the main game loop handle it
+	; This prevents "ghost" projectiles from appearing
 
-	push ShootingLength
-	push ShootingHeight
-	push [word ptr PlayerShootingLineLocation]
-	push [word ptr PlayerShootingRowLocation]
-	push RedColor
-	call PrintColor
-
-@@skipPlayerShot:
 	; Redraw invader shots
 	call PrintInvadersShots
 

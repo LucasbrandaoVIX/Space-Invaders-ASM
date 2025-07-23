@@ -18,10 +18,11 @@
 
 #### HidePauseMenu
 - Remove a sobreposição do menu de pausa
+- **Limpa toda a área de jogo para remover projéteis "fantasma"**
 - Redesenha todos os elementos do jogo:
   - Invasores
   - Nave do jogador
-  - Tiros do jogador (se existir)
+  - **NÃO redesenha tiros do jogador (evita projéteis fantasma)**
   - Tiros dos invasores
 
 ### 4. Modificações no Loop Principal
@@ -49,4 +50,17 @@
 - ✅ Interface visual clara indicando o estado de pausa
 - ✅ Todas as outras teclas são ignoradas durante a pausa
 - ✅ Redesenho automático ao despausar
+- ✅ **Correção de projéteis "fantasma" ao despausar**
 - ✅ Compatível com o código existente
+
+## Correções de Bugs Implementadas
+
+### Projéteis "Fantasma" ao Despausar
+**Problema:** Quando pausava com um projétil em movimento, ao despausar aparecia uma cópia parada do projétil.
+
+**Solução:** 
+1. Limpar toda a área de jogo antes de redesenhar
+2. **NÃO redesenhar o projétil do jogador** no `HidePauseMenu`
+3. Deixar o loop principal do jogo desenhar o projétil na posição correta
+
+**Resultado:** Projéteis continuam normalmente sem duplicatas.
