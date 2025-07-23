@@ -587,10 +587,6 @@ proc CheckAndKillInvader
 	mov [word ptr PlayerShootingLineLocation], 0
 	mov [word ptr PlayerShootingRowLocation], 0
 
-	;Increase and update score:
-	inc [byte ptr Score]
-	call UpdateScoreStat
-
 	pop ax
 	;clear killed invader print
 	mov bl, 8

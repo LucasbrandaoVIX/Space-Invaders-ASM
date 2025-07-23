@@ -828,35 +828,6 @@ proc PlayGame
 	mov ah, 9
 	mov dx, offset WinString
 	int 21h
-
-	;print actual score #:
-	mov ah, 2
-	xor bh, bh
-	mov dh, 14
-	mov dl, 12
-	int 10h
-
-	mov ah, 9
-	mov dx, offset YouEarnedXString
-	int 21h
-
-	xor ah, ah
-	mov al, [Score]
-	push ax
-	call HexToDecimal
-
-	push ax
-	mov ah, 2
-	int 21h
-	pop dx
-	xchg dl, dh
-	int 21h
-	xchg dl, dh
-	int 21h
-
-	mov ah, 9
-	mov dx, offset ScoreWordString
-	int 21h
 	
 	push 54
 	call Delay
