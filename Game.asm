@@ -1,5 +1,5 @@
 DATASEG
-include "Strings.asm"
+include "strings.asm"
 
 	DebugBool						db	0
 
@@ -17,14 +17,8 @@ include "Strings.asm"
 	RandomFileName					db	'Assets/Random.txt', 0
 	RandomFileHandle				dw	?
 
-	AskSaveFileName					db	'Assets/AskSave.bmp', 0
-	AskSaveFileHandle				dw	?
-
 	MainMenuFileName				db	'Assets/MainMenu.bmp',0
 	MainMenuFileHandle				dw	?
-
-	InstructionsFileName			db	'Assets/Instruct.bmp',0
-	InstructionsFileHandle			dw	?
 
 	InvaderFileName					db	'Assets/Invader.bmp',0
 	InvaderFileHandle				dw	?
@@ -87,8 +81,8 @@ include "Strings.asm"
 	WhiteColor						equ	255
 
 CODESEG
-include "Invader.asm"
-include "Procs.asm"
+include "entities.asm"
+include "utils.asm"
 
 ; -----------------------------------------------------------
 ; Prints the lower game area with lives
@@ -150,14 +144,6 @@ proc UpdateLives
 
 	ret
 endp UpdateLives
-
-
-; ---------------------------------------
-; Updates the game stats
-; ---------------------------------------
-proc UpdateStats
-	ret
-endp UpdateStats
 
 
 ; --------------------------------------
@@ -566,7 +552,6 @@ proc PlayGame
 
 @@gameStart:
 	call PrintStatsArea
-	call UpdateStats
 	call UpdateLives
 
 	call CheckAndMoveInvaders
@@ -622,26 +607,18 @@ proc PlayGame
 
 
 @@readKey:
-	mov ah, 1
-	int 16h
-
-	jz @@checkIfPaused
-
-	;Clean buffer:
- 	push ax
- 	xor al, al
- 	mov ah, 0ch
- 	int 21h
- 	pop ax
+	; Check keyboard flags instead of using int 16h
 	
-	;Check which key was pressed:
-	cmp ah, 1 ;Esc
-	je @@procEnd
+	; Check ESC key
+	cmp [byte ptr flag_esc], 1
+	je @@escPressed
 
-	cmp ah, 10h ;Q for quit with confirmation
+	; Check Q key for quit with confirmation
+	cmp [byte ptr flag_fecha_jogo], 1
 	je @@quitPressed
 
-	cmp ah, 19h ;P for pause (scancode for P)
+	; Check P key for pause
+	cmp [byte ptr flag_pausa], 1
 	je @@pausePressed
 
 	; Check if exit confirmation is showing - handle Y/N keys
@@ -650,16 +627,30 @@ proc PlayGame
 
 	; Check if game is paused - if so, ignore other keys except P
 	cmp [byte ptr GamePausedBool], 1
-	je @@readKey
+	je @@checkIfPaused
 
-	cmp ah, 11h ;W
+	; Check W key for shooting
+	cmp [byte ptr flag_atira], 1
 	je @@shootPressed
 
-	cmp ah, 4Bh ;Left
-	jne @@checkRight
+	; Check Left arrow key
+	cmp [byte ptr flag_move_esquerda], 1
+	je @@moveLeft
 
+	; Check Right arrow key  
+	cmp [byte ptr flag_move_direita], 1
+	je @@moveRight
+
+	jmp @@checkIfPaused
+
+@@escPressed:
+	; Clear the flag and exit
+	mov [byte ptr flag_esc], 0
+	jmp @@procEnd
+
+@@moveLeft:
 	cmp [word ptr ShooterRowLocation], 21
-	jb @@clearShot
+	jb @@checkIfPaused
 
 	;Clear current shooter print:
 	push ShooterLength
@@ -672,12 +663,9 @@ proc PlayGame
 	sub [word ptr ShooterRowLocation], 10
 	jmp @@printAgain
 
-@@checkRight:
-	cmp ah, 4Dh
-	jne @@readKey
-
+@@moveRight:
 	cmp [word ptr ShooterRowLocation], 290
-	ja @@clearShot
+	ja @@checkIfPaused
 
 	;Clear current shooter print:
 	push ShooterLength
@@ -700,9 +688,12 @@ proc PlayGame
 	jmp @@checkIfPaused
 
 @@pausePressed:
+	; Clear the pause flag
+	mov [byte ptr flag_pausa], 0
+	
 	; Check if exit confirmation menu is already open - if so, ignore pause
 	cmp [byte ptr ExitConfirmBool], 1
-	je @@readKey
+	je @@checkIfPaused
 
 	; Toggle pause state
 	cmp [byte ptr GamePausedBool], 0
@@ -711,44 +702,49 @@ proc PlayGame
 	; Unpause game
 	mov [byte ptr GamePausedBool], 0
 	call HidePauseMenu
-	jmp @@readKey
+	jmp @@checkIfPaused
 
 @@pauseGame:
 	; Pause game
 	mov [byte ptr GamePausedBool], 1
 	call ShowPauseMenu
-	jmp @@readKey
+	jmp @@checkIfPaused
 
 @@quitPressed:
+	; Clear the quit flag
+	mov [byte ptr flag_fecha_jogo], 0
+	
 	; Check if game is paused - if so, ignore quit
 	cmp [byte ptr GamePausedBool], 1
-	je @@readKey
+	je @@checkIfPaused
 
 	; Show exit confirmation menu
 	mov [byte ptr ExitConfirmBool], 1
 	call ShowExitConfirmMenu
-	jmp @@readKey
+	jmp @@checkIfPaused
 
 @@handleExitConfirm:
 	; Handle Y/N keys for exit confirmation
-	cmp ah, 15h ;Y for yes (scancode for Y)
+	cmp [byte ptr flag_confirma_sim], 1
 	je @@confirmExit
 
-	cmp ah, 31h ;N for no (scancode for N)
+	cmp [byte ptr flag_confirma_nao], 1
 	je @@cancelExit
 
-	; If other key pressed, ignore and continue reading
-	jmp @@readKey
+	; If no confirmation key pressed, continue checking
+	jmp @@checkIfPaused
 
 @@confirmExit:
-	; User confirmed exit
+	; Clear the flag and exit
+	mov [byte ptr flag_confirma_sim], 0
 	jmp @@procEnd
 
 @@cancelExit:
-	; User cancelled exit, hide menu and continue
+	; Clear the flag and hide exit menu
+	mov [byte ptr flag_confirma_nao], 0
 	mov [byte ptr ExitConfirmBool], 0
 	call HideExitConfirmMenu
-	jmp @@readKey
+	jmp @@checkIfPaused
 
 @@checkIfPaused:
 	; If exit confirmation is showing, skip game logic
@@ -767,6 +763,9 @@ proc PlayGame
 	jmp @@clearShot
 
 @@shootPressed:
+	; Clear the shoot flag
+	mov [byte ptr flag_atira], 0
+	
 	;Check if shooting already exists in screen:
 	cmp [byte ptr PlayerShootingExists], 0
 	jne @@moveShootingUp

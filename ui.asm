@@ -15,28 +15,30 @@ proc PrintMainMenu
 	call PrintDifficultyMenu
 
 @@getKey:
-	xor ah, ah
-	int 16h
-
-	; Check for Up Arrow (scan code 48h)
-	cmp ah, 48h
+	; Check keyboard flags instead of using int 16h
+	
+	; Check for Up Arrow
+	cmp [byte ptr flag_seta_cima], 1
 	je @@moveUp
 
-	; Check for Down Arrow (scan code 50h) 
-	cmp ah, 50h
+	; Check for Down Arrow
+	cmp [byte ptr flag_seta_baixo], 1
 	je @@moveDown
 
-	; Check for Enter key (scan code 1Ch)
-	cmp ah, 1Ch
+	; Check for Enter key
+	cmp [byte ptr flag_enter], 1
 	je @@startGame
 
-	; Check for Esc key (scan code 1)
-	cmp ah, 1
+	; Check for Esc key
+	cmp [byte ptr flag_esc], 1
 	je @@procEnd
 
 	jmp @@getKey
 
 @@moveUp:
+	; Clear the flag
+	mov [byte ptr flag_seta_cima], 0
+	
 	mov al, [SelectedMenuItem]
 	cmp al, 0
 	je @@wrapToBottom
@@ -49,6 +51,9 @@ proc PrintMainMenu
 	jmp @@updateDisplay
 
 @@moveDown:
+	; Clear the flag
+	mov [byte ptr flag_seta_baixo], 0
+	
 	mov al, [SelectedMenuItem]
 	cmp al, 2
 	je @@wrapToTop
@@ -64,6 +69,8 @@ proc PrintMainMenu
 	jmp @@getKey
 
 @@startGame:
+	; Clear the flag
+	mov [byte ptr flag_enter], 0
 	; Set difficulty level based on selection
 	mov al, [SelectedMenuItem]
 	mov [DifficultyLevel], al
@@ -83,42 +90,13 @@ proc PrintMainMenu
 	jmp @@printMenu
 
 @@procEnd:
+	; Clear the ESC flag
+	mov [byte ptr flag_esc], 0
+	
 	; Clear screen before exit
 	mov ah, 00h
 	mov al, 03h
 	int 10h
 	ret
 endp PrintMainMenu
-
-
-; ------------------------------------------------------------
-; Prints the instructions menu, quitting when a key is pressed
-; ------------------------------------------------------------
-proc PrintInstructions
-	push offset InstructionsFileName
-	push offset InstructionsFileHandle
-	call OpenFile
-
-	cmp ax, 0 ;check if there's an error opening file
-	jne @@printImage
-
-	push 18 ;wait 1 second
-	call Delay
-
-	ret
-
-@@printImage:
-	push [InstructionsFileHandle]
-	push offset FileReadBuffer
-	call PrintFullScreenBMP
-
-	push [InstructionsFileHandle]
-	call CloseFile
-
-	;wait for key:
-	xor ah, ah
-	int 16h
-
-	ret
-endp PrintInstructions
 
