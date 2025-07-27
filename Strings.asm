@@ -36,6 +36,10 @@ DATASEG
 	; Exit confirmation menu strings
 	ExitConfirmString		db	'EXIT GAME?', '$'
 	PressYesNoString		db	'Press Y for Yes, N for No', '$'
+	
+	; Game Over menu strings
+	GameOverMenuString		db	'RESTART GAME?', '$'
+	RestartYesNoString		db	'Press Y to Restart, N to Exit', '$'
 
 ;Debug strings:
 	OpenErrorMsg			db	'File Open Error', 10,'$'
