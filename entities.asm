@@ -217,9 +217,10 @@ proc InvadersRandomShot
 	cmp al, [InvadersShootingCurrentAmount]
 	ja @@shootRandomly
 
-	;Shoot or not, randomly:
-	;Chance of 3/4 to shoot
-	push 4
+	;Shoot or not, based on difficulty level:
+	;Use InvaderShotChance to determine shooting frequency
+	movzx ax, [byte ptr InvaderShotChance]
+	push ax
 	call Random
 	cmp ax, 0
 	je @@procEnd
