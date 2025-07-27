@@ -8,24 +8,11 @@ This project is an implementation of the classic Space Invaders game in x86 Asse
 - Compatible operating system (Windows recommended for running via DOSBox)
 
 ## How to Run
-1. Compile the `.asm` files to generate the `SPACE.EXE` executable.
-2. Run `SPACE.EXE` in a DOS environment (DOSBox recommended).
+1. Compile the main file to generate the executable.
+2. Run the executable in a DOS environment (DOSBox recommended).
     
-    `tasm /zi Space.asm`
-    `tlink /v Space.obj`
-    `Space.exe`
-
-## File Structure
-- `Space.asm`: Main file, initializes the game and calls modules.
-- `Game.asm`: Game logic, controls levels, lives, and score.
-- `Invader.asm`: Invader control, movement, and shooting.
-- `Menus.asm`: Difficulty selection and instructions menus.
-- `Print.asm`: Routines for printing BMPs and text on the screen.
-- `FileUse.asm`: File handling (open, close, errors).
-- `Procs.asm`: Utility procedures (delay, random, clear screen).
-- `Macros.asm`: Macros to facilitate loops and other operations.
-- `Strings.asm`: Strings used for messages and menus.
-- `Assets/`: BMP images and data files used by the game.
-
-## Credits
-Developed by Lucas Brandão for the Embedded Systems course - UFES.
+    ```bash
+    tasm /zi main.asm
+    tlink /v main.obj
+    main.exe
+    ```
