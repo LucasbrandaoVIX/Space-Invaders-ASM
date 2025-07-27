@@ -6,6 +6,7 @@ include "strings.asm"
 	; Game state
 	GamePausedBool					db	0		; 0=Game running, 1=Game paused
 	ExitConfirmBool					db	0		; 0=Normal play, 1=Showing exit confirmation
+	GameOverMenuBool				db	0		; 0=Normal play, 1=Showing game over menu
 
 	; Difficulty settings
 	DifficultyLevel					db	1		; 0=Easy, 1=Medium, 2=Hard
@@ -303,6 +304,79 @@ proc HideExitConfirmMenu
 endp HideExitConfirmMenu
 
 
+; --------------------------------------
+; Shows the game over restart menu overlay
+; --------------------------------------
+proc ShowGameOverMenu
+	; Print semi-transparent overlay (centralizado)
+	push 240
+	push 80
+	push 50
+	push 40
+	push 8  ; Dark gray color
+	call PrintColor
+
+	; Print "Game Over!" text (centralizado)
+	mov ah, 2
+	xor bh, bh
+	mov dh, 6
+	mov dl, 17
+	int 10h
+
+	mov ah, 9
+	mov dx, offset GameOverString
+	int 21h
+
+	; Print "RESTART GAME?" text (centralizado)
+	mov ah, 2
+	xor bh, bh
+	mov dh, 8
+	mov dl, 16
+	int 10h
+
+	mov ah, 9
+	mov dx, offset GameOverMenuString
+	int 21h
+
+	; Print "Press Y to Restart, N to Exit" text (centralizado)
+	mov ah, 2
+	xor bh, bh
+	mov dh, 10
+	mov dl, 5
+	int 10h
+
+	mov ah, 9
+	mov dx, offset RestartYesNoString
+	int 21h
+
+	ret
+endp ShowGameOverMenu
+
+
+; --------------------------------------
+; Hides the game over menu and redraws game (if restarting)
+; --------------------------------------
+proc HideGameOverMenu
+	; Clear the game over menu area
+	push 240
+	push 80
+	push 50
+	push 40
+	push BlackColor
+	call PrintColor
+
+	; Clear the entire game area
+	push 320
+	push 165  ; From top to stats area
+	push 0    ; Start line
+	push 0    ; Start row
+	push BlackColor
+	call PrintColor
+
+	ret
+endp HideGameOverMenu
+
+
 ; ------------------------------------------------------------
 ; Moving invaders + player to initial location, removing shots
 ; Not getting back dead invaders
@@ -411,6 +485,7 @@ proc InitializeGame
 	mov [byte ptr LivesRemaining], 3
 	mov [byte ptr GamePausedBool], 0  ; Ensure game starts unpaused
 	mov [byte ptr ExitConfirmBool], 0  ; Ensure exit confirmation is off
+	mov [byte ptr GameOverMenuBool], 0  ; Ensure game over menu is off
 
 	call InitializeInvaders
 
@@ -625,6 +700,10 @@ proc PlayGame
 	cmp [byte ptr ExitConfirmBool], 1
 	je @@handleExitConfirm
 
+	; Check if game over menu is showing - handle Y/N keys
+	cmp [byte ptr GameOverMenuBool], 1
+	je @@handleGameOverMenu
+
 	; Check if game is paused - if so, ignore other keys except P
 	cmp [byte ptr GamePausedBool], 1
 	je @@checkIfPaused
@@ -746,9 +825,39 @@ proc PlayGame
 	call HideExitConfirmMenu
 	jmp @@checkIfPaused
 
+@@handleGameOverMenu:
+	; Handle Y/N keys for game over restart menu
+	cmp [byte ptr flag_confirma_sim], 1
+	je @@restartGame
+
+	cmp [byte ptr flag_confirma_nao], 1
+	je @@exitToMenu
+
+	; If no confirmation key pressed, continue checking
+	jmp @@checkIfPaused
+
+@@restartGame:
+	; Clear the flag and restart game
+	mov [byte ptr flag_confirma_sim], 0
+	mov [byte ptr GameOverMenuBool], 0
+	call HideGameOverMenu
+	call InitializeGame
+	call ClearScreen
+	jmp @@gameStart
+
+@@exitToMenu:
+	; Clear the flag and exit to main menu
+	mov [byte ptr flag_confirma_nao], 0
+	mov [byte ptr GameOverMenuBool], 0
+	jmp @@procEnd
+
 @@checkIfPaused:
 	; If exit confirmation is showing, skip game logic
 	cmp [byte ptr ExitConfirmBool], 1
+	je @@readKey
+
+	; If game over menu is showing, skip game logic
+	cmp [byte ptr GameOverMenuBool], 1
 	je @@readKey
 
 	; If game is paused, skip game logic
@@ -915,21 +1024,10 @@ proc PlayGame
 
 @@printDied:
 	call ClearScreen
-; Print a message when game is over:
-	mov ah, 2
-	xor bh, bh
-	mov dh, 12
-	mov dl, 17
-	int 10h
-
-	mov ah, 9
-	mov dx, offset GameOverString
-	int 21h
-
-	push 54
-	call Delay
-
-	jmp @@procEnd
+	; Show game over menu instead of immediately exiting
+	mov [byte ptr GameOverMenuBool], 1
+	call ShowGameOverMenu
+	jmp @@readKey
 
 
 @@setNewLevel:
